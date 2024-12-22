@@ -29,20 +29,23 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
     const database = client.db('lodgio-db');
-    const hotelList = database.collection('hotel-list');
+    const roomList = database.collection('roomList');
 
     // servers starts here ..........
     app.get('/', async(req, res) => {
         res.send('Server is running ...................')
     })
 
-
+    app.get('/rooms', async(req, res)=> {
+      const result = await roomList.find().toArray()
+      res.send(result)
+    })
 
 
 
 
   } finally {
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
