@@ -48,6 +48,22 @@ async function run() {
     })
 
 
+    app.patch('/room/:id', async(req, res)=> {
+      const id = req.params.id
+      const update = req.body;
+      const result = roomList.updateOne({ _id: new ObjectId(id)},{$set:update});
+      res.send(result)
+    })
+
+
+    app.patch('/booking/:id', async(req, res)=> {
+      const id = req.params.id
+      const update = req.body;
+      const result = bookingList.updateOne({ _id: new ObjectId(id)},{$set:update});
+      res.send(result)
+    })
+
+
     app.get('/bookings',async(req, res)=> {
       const email = req.query.email;
       const result =await bookingList.find({userEmail : email}).toArray();
@@ -58,6 +74,19 @@ async function run() {
           each.hotelName = roomData.hotelName;
           each.pricePerNight = roomData.pricePerNight;
         }
+      }
+      const roomId = req.query.roomId;
+      res.send(result)
+    })
+
+    app.get('/booking/:id', async(req, res)=> {
+      const id = req.params.id
+      const result = await bookingList.findOne({_id: new ObjectId(id)});
+      const roomId = result?.roomId;
+      const roomData = await roomList.findOne({ _id :new ObjectId(roomId)})
+      if(roomData){
+        result.pricePerNight = roomData.pricePerNight;
+        result.imageUrl = roomData.imageUrl;
       }
       res.send(result)
     })
@@ -70,12 +99,6 @@ async function run() {
       res.send(result)
     })
 
-    app.patch('/bookings/:id', async(req, res)=> {
-      const id = req.params.id
-      const update = req.body;
-      const result = roomList.updateOne({ _id: new ObjectId(id)},{$set:update});
-      res.send(result)
-    })
 
 
 
