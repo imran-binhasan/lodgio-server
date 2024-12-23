@@ -30,7 +30,7 @@ async function run() {
     console.log("You successfully connected to MongoDB!");
     const database = client.db('lodgio-db');
     const roomList = database.collection('roomList');
-
+    const bookingList = database.collection('bookingList')
     // servers starts here ..........
     app.get('/', async(req, res) => {
         res.send('Server is running ...................')
@@ -46,6 +46,38 @@ async function run() {
       const result = await roomList.findOne({_id: new ObjectId(id)})
       res.send(result)
     })
+
+
+    app.get('/bookings',async(req, res)=> {
+      const email = req.query.email;
+      const result =await bookingList.find({userEmail : email}).toArray();
+      for (const each of result){
+        const roomData = await roomList.findOne({ _id : new ObjectId(each.roomId)});
+        if(roomData){
+          each.imageUrl = roomData.imageUrl;
+          each.hotelName = roomData.hotelName;
+          each.pricePerNight = roomData.pricePerNight;
+        }
+      }
+      res.send(result)
+    })
+
+
+
+    app.post('/bookings',async(req, res)=> {
+      const data = req.body;
+      const result = bookingList.insertOne(data);
+      res.send(result)
+    })
+
+    app.patch('/bookings/:id', async(req, res)=> {
+      const id = req.params.id
+      const update = req.body;
+      const result = roomList.updateOne({ _id: new ObjectId(id)},{$set:update});
+      res.send(result)
+    })
+
+
 
 
 
