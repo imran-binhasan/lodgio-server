@@ -63,6 +63,13 @@ async function run() {
       res.send(result)
     })
 
+    app.patch('/booking/review/:id', async(req, res)=> {
+      const id = req.params.id
+      const update = req.body;
+      const result = bookingList.updateOne({ _id: new ObjectId(id)},{$set:update});
+      res.send(result)
+    })
+
 
     app.get('/bookings',async(req, res)=> {
       const email = req.query.email;
@@ -87,6 +94,7 @@ async function run() {
       if(roomData){
         result.pricePerNight = roomData.pricePerNight;
         result.imageUrl = roomData.imageUrl;
+        result.reviews = roomData.reviews;
       }
       res.send(result)
     })
