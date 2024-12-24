@@ -100,7 +100,21 @@ async function run() {
     })
 
 
+    app.delete('/booking/:id', async(req,res)=>{
+      const id = req.params.id
+      const result = bookingList.deleteOne({ _id: new ObjectId(id)})
+      res.send(result)
+    })
 
+    app.post('/room/:id',async(req, res)=> {
+      const id = req.params.id;
+      const newReview = req.body;
+      const result = await roomList.updateOne( {_id : new ObjectId(id)},{
+        $push: {reviews: newReview},
+      });
+      res.send(result)
+      
+    })
 
 
 
