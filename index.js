@@ -70,6 +70,17 @@ async function run() {
       res.send(result)
     })
 
+    app.delete('/room/:id', async (req, res) => {
+      const id = req.params.id;
+      const bookingId = req.query._id;
+      const result = await roomList.updateOne(
+        { _id: new ObjectId(id)},
+        { $pull: { reviews: { bookingId } } }
+      );
+      res.send(result);
+    });
+    
+
 
     app.get('/bookings',async(req, res)=> {
       const email = req.query.email;
@@ -124,6 +135,24 @@ async function run() {
       
     })
 
+    app.get('/reviews', async (req, res) => {
+      try {
+          const allReviews = [];
+          const rooms = await roomList.find().toArray(); // Fetch all rooms
+  
+          for (const room of rooms) {
+              if (Array.isArray(room.reviews) && room.reviews.length > 0) {
+                  allReviews.push(...room.reviews); // Add all reviews from the current room
+              }
+          }
+  
+          res.json(allReviews); // Send the collected reviews as a JSON response
+      } catch (error) {
+          console.error('Error fetching reviews:', error);
+          res.status(500).send('Internal Server Error'); // Handle errors gracefully
+      }
+  });
+  
 
 
   } finally {
