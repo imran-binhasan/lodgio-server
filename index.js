@@ -35,11 +35,31 @@ async function run() {
     app.get('/', async(req, res) => {
         res.send('Server is running ...................')
     })
-
-    app.get('/rooms', async(req, res)=> {
-      const result = await roomList.find().toArray()
-      res.send(result)
-    })
+    app.get('/rooms', async (req, res) => {
+      let filter = {};
+      let sort = {};
+      const { priceRange } = req.query; // Get the price range from query
+      console.log(priceRange);
+    
+      if (priceRange === 'lowest-first') {
+        sort = { pricePerNight: 1 }; // Sort by price in ascending order
+      }
+      else if (priceRange === '100-200') { // Corrected to string format
+        filter.pricePerNight = { $gte: 100, $lte: 200 }; // Filter between $100 and $200
+      }
+      else if (priceRange === '200-300') { // Corrected to string format
+        filter.pricePerNight = { $gte: 200, $lte: 300 }; // Filter between $200 and $300
+      }
+      else if (priceRange === '300-400') { // Corrected to string format
+        filter.pricePerNight = { $gte: 300, $lte: 400 }; // Filter between $300 and $400
+      }
+      else if (priceRange === 'highest-first') {
+        sort = { pricePerNight: -1 }; // Sort by price in descending order
+      }
+        const result = await roomList.find(filter).sort(sort).toArray(); // Apply filter and sort
+        res.send(result); // Send the result back to the client
+    });
+    
 
     app.get('/room/:id', async(req, res)=> {
       const id = req.params.id
@@ -139,14 +159,17 @@ async function run() {
 app.get('/reviews', async (req, res) => {
     try {
         const allReviews = [];
-        const rooms = await roomList.find().toArray(); // Fetch all rooms
+        const sort = { timestamp : -1}
+        const rooms = await roomList.find().sort(sort).limit(6).toArray(); // Fetch all rooms
 
         for (const room of rooms) {
             if (Array.isArray(room.reviews) && room.reviews.length > 0) {
                 allReviews.push(...room.reviews); // Add all reviews from the current room
             }
-        }
+          
 
+        }
+        allReviews.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         res.json(allReviews); // Send the collected reviews as a JSON response
     } catch (error) {
         console.error('Error fetching reviews:', error);
@@ -158,7 +181,8 @@ app.get('/review/:id', async(req, res) => {
   const id = req.params.id;
   const bId = req.query._id;
   const data = await roomList.findOne({_id : new ObjectId(id)});
-  const result = (data.reviews).filter(r => r.bookingId == bId)
+  const datalist = data.reviews
+  const result = (datalist).filter(r => r.bookingId == bId)
   res.send(result[0])
 })
 
