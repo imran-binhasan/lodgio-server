@@ -38,8 +38,10 @@ async function run() {
     app.get('/rooms', async (req, res) => {
       let filter = {};
       let sort = {};
-      const { priceRange } = req.query; // Get the price range from query
-      console.log(priceRange);
+      const { priceRange, page=1 ,limit= 9 } = req.query; // Get the price range from query
+      const pageNumber = parseInt(page, 10);
+      const limitNumber = parseInt(limit, 10);
+      
     
       if (priceRange === 'lowest-first') {
         sort = { pricePerNight: 1 }; // Sort by price in ascending order
@@ -56,10 +58,34 @@ async function run() {
       else if (priceRange === 'highest-first') {
         sort = { pricePerNight: -1 }; // Sort by price in descending order
       }
-        const result = await roomList.find(filter).sort(sort).toArray(); // Apply filter and sort
-        res.send(result); // Send the result back to the client
+
+      const skip =( pageNumber - 1) * limitNumber
+      console.log(skip)
+
+        const result = await roomList.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNumber)
+        .toArray(); // Apply filter and sort
+
+        const totalCount = await roomList.countDocuments(filter);
+        totalPages = Math.ceil(totalCount/limitNumber)
+        res.json({
+          rooms: result, // Paginated rooms data
+          totalCount, // Total number of rooms
+          totalPages, // Total number of pages
+          currentPage: pageNumber, // Current page number
+        });// Send the result back to the client
     });
     
+    app.get('/room/rated', async(req,res)=> {
+      result = await roomList.find().sort({reviews : -1}).limit(6).toArray();
+      res.send(result)
+    })
+
+
+
+
 
     app.get('/room/:id', async(req, res)=> {
       const id = req.params.id
@@ -177,15 +203,15 @@ app.get('/reviews', async (req, res) => {
     }
 });
 
-app.get('/review/:id', async(req, res) => {
+app.get('/review/:id', async (req, res) => {
   const id = req.params.id;
-  const bId = req.query._id;
-  const data = await roomList.findOne({_id : new ObjectId(id)});
-  const datalist = data.reviews
-  const result = (datalist).filter(r => r.bookingId == bId)
-  res.send(result[0])
-})
-
+  const bId = req.query.bId; // Extract the value of bId from req.query
+    const data = await roomList.findOne({ _id: new ObjectId(id) });
+    const datalist = data.reviews || []; // Ensure datalist is defined, default to an empty array
+    const result = datalist.filter(r => r.bookingId === bId); // Compare correctly
+    console.log(result[0]); // Debug: Log the result
+    res.json(result[0]); // Send the filtered reviews as a response
+});
 
 
   } finally {
