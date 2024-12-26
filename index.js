@@ -9,10 +9,13 @@ const cookieParser = require('cookie-parser')
 const app = express();
 app.use(express.json())
 app.use(cookieParser());
-app.use(cors({
-  origin:['http://localhost:5175'],
-  credentials:true
-}));
+app.use(
+  cors({
+    origin:  ['https://lodgio.netlify.app'],
+    credentials: true,
+  })
+);
+
 const port = process.env.PORT || 5000;
 configDotenv()
 
@@ -26,7 +29,6 @@ const verifyToken = (req, res, next) => {
       return res.status(401).send({message: 'Unauthorized access'})
     }
     req.user = decoded;
-    console.log(req.user)
   })
   next();
 }
@@ -45,9 +47,9 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("You successfully connected to MongoDB!");
+    // await client.connect();
+    // await client.db("admin").command({ ping: 1 });
+
     const database = client.db('lodgio-db');
     const roomList = database.collection('roomList');
     const bookingList = database.collection('bookingList')
@@ -56,7 +58,6 @@ async function run() {
     app.post('/jwt', async(req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT,{expiresIn:'2h'});
-      console.log(token)
       res.cookie('token',token,{httpOnly:true, secure:false})
       .send({success:true})
     })
@@ -117,14 +118,19 @@ async function run() {
 
 
 
-    app.get('/room/:id', async(req, res)=> {
-      const id = req.params.id
-      const result = await roomList.findOne({_id: new ObjectId(id)})
-      res.send(result)
-    })
+    // Fetch single room by ID
+    app.get('/room/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await roomList.findOne({ _id: new ObjectId(id) });
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching room:', error);
+        res.status(500).send({ message: 'Internal Server Error' });
+      }
+    });
 
-
-    app.patch('/room/:id',verifyToken, async(req, res)=> {
+    app.patch('/room/:id', async(req, res)=> {
       const id = req.params.id
       const update = req.body;
       const result = roomList.updateOne({ _id: new ObjectId(id)},{$set:update});
@@ -139,7 +145,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch('/booking/review/:id',verifyToken, async(req, res)=> {
+    app.patch('/booking/review/:id', async(req, res)=> {
       const id = req.params.id
       const update = req.body;
       const result = bookingList.updateOne({ _id: new ObjectId(id)},{$set:update});
@@ -159,7 +165,7 @@ async function run() {
     
 
 
-    app.get('/bookings',async(req, res)=> {
+    app.get('/bookings',verifyToken, async(req, res)=> {
       const email = req.query.email;
       const result =await bookingList.find({userEmail : email}).toArray();
     
@@ -252,5 +258,5 @@ run().catch(console.dir);
 
 
 app.listen(port,()=>{
-    console.log(`Listening on port : ${port}`)
+    // console.log(`Listening on port : ${port}`)
 })
