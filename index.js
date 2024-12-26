@@ -1,15 +1,35 @@
-const express = require('express');
-const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const {configDotenv} = require('dotenv');
-configDotenv()
+const express = require('express');
+const cors = require('cors');
+var jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
+
 
 const app = express();
-app.use(cors())
 app.use(express.json())
+app.use(cookieParser());
+app.use(cors({
+  origin:['http://localhost:5175'],
+  credentials:true
+}));
 const port = process.env.PORT || 5000;
+configDotenv()
 
-
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if(!token){
+    return res.status(401).send({message: 'Unauthorized access'})
+  }
+  jwt.verify(token, process.env.JWT, (err, decoded) => {
+    if(err){
+      return res.status(401).send({message: 'Unauthorized access'})
+    }
+    req.user = decoded;
+    console.log(req.user)
+  })
+  next();
+}
 
 const uri = process.env.CONNECTION_STRING;
 
@@ -32,9 +52,22 @@ async function run() {
     const roomList = database.collection('roomList');
     const bookingList = database.collection('bookingList')
     // servers starts here ..........
+
+    app.post('/jwt', async(req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT,{expiresIn:'2h'});
+      console.log(token)
+      res.cookie('token',token,{httpOnly:true, secure:false})
+      .send({success:true})
+    })
+
+
+
+
     app.get('/', async(req, res) => {
         res.send('Server is running ...................')
     })
+
     app.get('/rooms', async (req, res) => {
       let filter = {};
       let sort = {};
@@ -60,7 +93,6 @@ async function run() {
       }
 
       const skip =( pageNumber - 1) * limitNumber
-      console.log(skip)
 
         const result = await roomList.find(filter)
         .sort(sort)
@@ -85,8 +117,6 @@ async function run() {
 
 
 
-
-
     app.get('/room/:id', async(req, res)=> {
       const id = req.params.id
       const result = await roomList.findOne({_id: new ObjectId(id)})
@@ -94,7 +124,7 @@ async function run() {
     })
 
 
-    app.patch('/room/:id', async(req, res)=> {
+    app.patch('/room/:id',verifyToken, async(req, res)=> {
       const id = req.params.id
       const update = req.body;
       const result = roomList.updateOne({ _id: new ObjectId(id)},{$set:update});
@@ -102,21 +132,21 @@ async function run() {
     })
 
 
-    app.patch('/booking/:id', async(req, res)=> {
+    app.patch('/booking/:id',verifyToken, async(req, res)=> {
       const id = req.params.id
       const update = req.body;
       const result = bookingList.updateOne({ _id: new ObjectId(id)},{$set:update});
       res.send(result)
     })
 
-    app.patch('/booking/review/:id', async(req, res)=> {
+    app.patch('/booking/review/:id',verifyToken, async(req, res)=> {
       const id = req.params.id
       const update = req.body;
       const result = bookingList.updateOne({ _id: new ObjectId(id)},{$set:update});
       res.send(result)
     })
 
-    app.delete('/room/:id', async (req, res) => {
+    app.delete('/room/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
       const bookingId = req.query._id;
       
@@ -132,6 +162,7 @@ async function run() {
     app.get('/bookings',async(req, res)=> {
       const email = req.query.email;
       const result =await bookingList.find({userEmail : email}).toArray();
+    
       for (const each of result){
         const roomData = await roomList.findOne({ _id : new ObjectId(each.roomId)});
         if(roomData){
@@ -144,7 +175,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/booking/:id', async(req, res)=> {
+    app.get('/booking/:id',verifyToken, async(req, res)=> {
       const id = req.params.id
       const result = await bookingList.findOne({_id: new ObjectId(id)});
       const roomId = result?.roomId;
@@ -159,7 +190,7 @@ async function run() {
 
 
 
-    app.post('/bookings',async(req, res)=> {
+    app.post('/bookings',verifyToken,async(req, res)=> {
       const data = req.body;
       const result = bookingList.insertOne(data);
       res.send(result)
@@ -172,7 +203,7 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/room/:id',async(req, res)=> {
+    app.post('/room/:id',verifyToken,async(req, res)=> {
       const id = req.params.id;
       const newReview = req.body;
       const result = await roomList.updateOne( {_id : new ObjectId(id)},{
@@ -209,7 +240,6 @@ app.get('/review/:id', async (req, res) => {
     const data = await roomList.findOne({ _id: new ObjectId(id) });
     const datalist = data.reviews || []; // Ensure datalist is defined, default to an empty array
     const result = datalist.filter(r => r.bookingId === bId); // Compare correctly
-    console.log(result[0]); // Debug: Log the result
     res.json(result[0]); // Send the filtered reviews as a response
 });
 
