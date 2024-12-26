@@ -5,7 +5,7 @@
 Lodgio's backend powers hotel data, authentication, and bookings with a secure and scalable API.
 
 ## Live URL
-[Live API](#)
+https://lodgio-server.vercel.app/
 
 ## Key Features
 - **API for Hotels:** Endpoints to fetch, add, update, and delete hotel data.
@@ -19,7 +19,6 @@ Lodgio's backend powers hotel data, authentication, and bookings with a secure a
 - **Mongoose:** ODM library for MongoDB.
 - **Cors:** Middleware for enabling cross-origin requests.
 - **Dotenv:** Load environment variables from a `.env` file.
-- **Body-Parser:** Parse incoming request bodies.
 - **Nodemon:** Auto-restart the server during development.
-- **Firebase Admin SDK:** For secure authentication.
+
 
