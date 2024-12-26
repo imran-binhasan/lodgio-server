@@ -11,7 +11,7 @@ app.use(express.json())
 app.use(cookieParser());
 app.use(
   cors({
-    origin:  ['https://lodgio.netlify.app'],
+    origin:  ['https://lodgio.netlify.app', 'http://localhost:5173'],
     credentials: true,
   })
 );
@@ -32,6 +32,13 @@ const verifyToken = (req, res, next) => {
   })
   next();
 }
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
+
 
 const uri = process.env.CONNECTION_STRING;
 
@@ -58,7 +65,7 @@ async function run() {
     app.post('/jwt', async(req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT,{expiresIn:'2h'});
-      res.cookie('token',token,{httpOnly:true, secure:false})
+      res.cookie('token',token,cookieOptions)
       .send({success:true})
     })
 
@@ -112,8 +119,10 @@ async function run() {
     });
     
     app.get('/room/rated', async(req,res)=> {
-      result = await roomList.find().sort({reviews : -1}).limit(6).toArray();
-      res.send(result)
+      const rooms = await roomList.find().toArray();
+      const sortedRooms = rooms.sort((a, b) => (b.reviews?.length || 0) - (a.reviews?.length || 0));
+      const limitedRooms = sortedRooms.slice(0,6)
+      res.send(limitedRooms)
     })
 
 
