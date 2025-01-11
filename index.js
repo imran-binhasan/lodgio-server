@@ -79,7 +79,7 @@ async function run() {
     app.get('/rooms', async (req, res) => {
       let filter = {};
       let sort = {};
-      const { priceRange, page=1 ,limit= 9 } = req.query; // Get the price range from query
+      const { priceRange, page=1 ,limit= 8 } = req.query; // Get the price range from query
       const pageNumber = parseInt(page, 10);
       const limitNumber = parseInt(limit, 10);
       
@@ -121,7 +121,7 @@ async function run() {
     app.get('/room/rated', async(req,res)=> {
       const rooms = await roomList.find().toArray();
       const sortedRooms = rooms.sort((a, b) => (b.reviews?.length || 0) - (a.reviews?.length || 0));
-      const limitedRooms = sortedRooms.slice(0,6)
+      const limitedRooms = sortedRooms.slice(0,8)
       res.send(limitedRooms)
     })
 
